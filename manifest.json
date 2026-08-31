@@ -1,0 +1,13 @@
+{
+  "name": "Shomer — Guard your money",
+  "short_name": "Shomer",
+  "description": "A lifelong ledger for where your money actually goes.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#12141A",
+  "theme_color": "#12141A",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

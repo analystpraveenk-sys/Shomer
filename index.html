@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shomer</title>
+<meta name="theme-color" content="#12141A">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="app-header">
+    <div class="brand">
+      <img src="icons/icon.svg" alt="" class="brand-mark">
+      <span class="brand-name">Shomer</span>
+    </div>
+    <button id="addBtn" class="add-btn" aria-label="Add entry">+</button>
+  </header>
+
+  <main id="views">
+
+    <!-- OVERVIEW -->
+    <section id="view-overview" class="view active" data-view="overview">
+      <div class="ledger-block hero-block">
+        <div class="hero-label">This month</div>
+        <div class="hero-amount" id="ov-total">₹0</div>
+        <div class="hero-compare" id="ov-compare">No data from last month yet</div>
+      </div>
+
+      <div class="ledger-block">
+        <div class="row-line">
+          <span class="row-label">Pace</span>
+          <span class="row-value" id="ov-pace">—</span>
+        </div>
+      </div>
+
+      <div class="ledger-block leak-block" id="ov-leak-block">
+        <div class="row-line">
+          <span class="row-label">Flagged as avoidable</span>
+          <span class="row-value rust" id="ov-leak-amount">₹0</span>
+        </div>
+        <div class="leak-sub">Tap to see everything you flagged this year</div>
+      </div>
+
+      <div class="ledger-block">
+        <div class="block-title">Top categories this month</div>
+        <div id="ov-top-categories" class="mini-list"></div>
+      </div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section id="view-categories" class="view" data-view="categories">
+      <div class="ledger-block">
+        <div class="block-title">Spend by category</div>
+        <canvas id="cat-chart" width="320" height="320"></canvas>
+      </div>
+      <div class="ledger-block">
+        <div id="cat-list" class="category-list"></div>
+      </div>
+    </section>
+
+    <!-- TRENDS -->
+    <section id="view-trends" class="view" data-view="trends">
+      <div class="ledger-block">
+        <div class="block-title">Spend over time</div>
+        <div class="range-toggle" id="range-toggle">
+          <button data-range="3">3M</button>
+          <button data-range="6" class="active">6M</button>
+          <button data-range="12">1Y</button>
+          <button data-range="all">All</button>
+        </div>
+        <canvas id="trend-chart" width="320" height="220"></canvas>
+      </div>
+      <div class="ledger-block">
+        <div class="block-title">By payment method</div>
+        <div id="payment-list" class="mini-list"></div>
+      </div>
+    </section>
+
+    <!-- LEAKS -->
+    <section id="view-leaks" class="view" data-view="leaks">
+      <div class="ledger-block hero-block">
+        <div class="hero-label">Avoidable spend, all time</div>
+        <div class="hero-amount rust" id="leak-total">₹0</div>
+      </div>
+      <div class="ledger-block">
+        <div class="block-title">Flagged entries</div>
+        <div id="leak-list" class="entry-list"></div>
+      </div>
+    </section>
+
+    <!-- SAVE -->
+    <section id="view-save" class="view" data-view="save">
+      <div class="ledger-block hero-block">
+        <div class="hero-label">Saved &amp; invested, all time</div>
+        <div class="hero-amount sage" id="save-total">₹0</div>
+      </div>
+      <div class="ledger-block">
+        <div class="block-title">Entries</div>
+        <div id="save-list" class="entry-list"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="overview">Overview</button>
+    <button class="nav-btn" data-view="categories">Categories</button>
+    <button class="nav-btn" data-view="trends">Trends</button>
+    <button class="nav-btn" data-view="leaks">Leaks</button>
+    <button class="nav-btn" data-view="save">Save</button>
+  </nav>
+
+  <!-- ADD ENTRY MODAL -->
+  <div id="addModal" class="modal hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <span>New entry</span>
+        <button id="closeModal" class="close-btn" aria-label="Close">×</button>
+      </div>
+
+      <div class="entry-type-toggle" id="entryTypeToggle">
+        <button data-type="expense" class="active">Expense</button>
+        <button data-type="saving">Saving / Investment</button>
+      </div>
+
+      <form id="entryForm">
+        <label class="field">
+          <span>Amount</span>
+          <input type="number" id="f-amount" inputmode="decimal" placeholder="0" required min="0" step="0.01">
+        </label>
+
+        <label class="field">
+          <span>Date</span>
+          <input type="date" id="f-date" required>
+        </label>
+
+        <div class="field" id="categoryFieldWrap">
+          <span>Category</span>
+          <select id="f-category" required></select>
+        </div>
+
+        <div class="field" id="subcategoryFieldWrap">
+          <span>Subcategory</span>
+          <select id="f-subcategory"></select>
+        </div>
+
+        <label class="field">
+          <span>Note</span>
+          <input type="text" id="f-note" placeholder="What was this for?">
+        </label>
+
+        <label class="field">
+          <span>Payment method</span>
+          <select id="f-payment">
+            <option>UPI</option>
+            <option>Card</option>
+            <option>Cash</option>
+            <option>Netbanking</option>
+          </select>
+        </label>
+
+        <div class="field" id="tagsFieldWrap">
+          <span>Tags</span>
+          <div class="tag-picker" id="tagPicker">
+            <button type="button" data-tag="avoidable">Avoidable</button>
+            <button type="button" data-tag="impulse">Impulse</button>
+            <button type="button" data-tag="recurring">Recurring</button>
+            <button type="button" data-tag="essential">Essential</button>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn">Save entry</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
