@@ -26,18 +26,37 @@
 
   <main id="views">
 
-    <!-- OVERVIEW -->
+    <!-- OVERVIEW / DASHBOARD -->
     <section id="view-overview" class="view active" data-view="overview">
       <div class="ledger-block hero-block">
-        <div class="hero-label">This month</div>
-        <div class="hero-amount" id="ov-total">₹0</div>
-        <div class="hero-compare" id="ov-compare">No data from last month yet</div>
+        <div class="hero-label">This month · net</div>
+        <div class="hero-amount" id="ov-net">₹0</div>
+        <div class="hero-compare" id="ov-net-breakdown">Income ₹0 · Expenses ₹0</div>
       </div>
 
       <div class="ledger-block">
         <div class="row-line">
-          <span class="row-label">Pace</span>
+          <span class="row-label">Spend pace</span>
           <span class="row-value" id="ov-pace">—</span>
+        </div>
+      </div>
+
+      <div class="ledger-block" id="ov-saved-block">
+        <div class="row-line">
+          <span class="row-label">Saved &amp; invested (all time)</span>
+          <span class="row-value sage" id="ov-saved">₹0</span>
+        </div>
+      </div>
+
+      <div class="ledger-block" id="ov-debt-block">
+        <div class="block-title">Debt &amp; lending (pending)</div>
+        <div class="row-line">
+          <span class="row-label">You owe</span>
+          <span class="row-value rust" id="ov-owe">₹0</span>
+        </div>
+        <div class="row-line" style="margin-top:8px;">
+          <span class="row-label">Owed to you</span>
+          <span class="row-value sage" id="ov-owed">₹0</span>
         </div>
       </div>
 
@@ -96,15 +115,49 @@
       </div>
     </section>
 
-    <!-- SAVE -->
-    <section id="view-save" class="view" data-view="save">
-      <div class="ledger-block hero-block">
-        <div class="hero-label">Saved &amp; invested, all time</div>
-        <div class="hero-amount sage" id="save-total">₹0</div>
+    <!-- MORE: Save / Income / Debt & Lending -->
+    <section id="view-more" class="view" data-view="more">
+      <div class="segment-toggle" id="moreSegmentToggle">
+        <button data-segment="save" class="active">Save</button>
+        <button data-segment="income">Income</button>
+        <button data-segment="debt">Debt &amp; Lending</button>
       </div>
-      <div class="ledger-block">
-        <div class="block-title">Entries</div>
-        <div id="save-list" class="entry-list"></div>
+
+      <div id="segment-save" class="segment active">
+        <div class="ledger-block hero-block">
+          <div class="hero-label">Saved &amp; invested, all time</div>
+          <div class="hero-amount sage" id="save-total">₹0</div>
+        </div>
+        <div class="ledger-block">
+          <div class="block-title">Entries</div>
+          <div id="save-list" class="entry-list"></div>
+        </div>
+      </div>
+
+      <div id="segment-income" class="segment">
+        <div class="ledger-block hero-block">
+          <div class="hero-label">Received, all time</div>
+          <div class="hero-amount sage" id="income-total">₹0</div>
+        </div>
+        <div class="ledger-block">
+          <div class="block-title">Entries</div>
+          <div id="income-list" class="entry-list"></div>
+        </div>
+      </div>
+
+      <div id="segment-debt" class="segment">
+        <div class="ledger-block hero-block">
+          <div class="hero-label">You owe (pending)</div>
+          <div class="hero-amount rust" id="debt-owe-total">₹0</div>
+        </div>
+        <div class="ledger-block hero-block">
+          <div class="hero-label">Owed to you (pending)</div>
+          <div class="hero-amount sage" id="debt-owed-total">₹0</div>
+        </div>
+        <div class="ledger-block">
+          <div class="block-title">Entries — tap to mark repaid</div>
+          <div id="debt-list" class="entry-list"></div>
+        </div>
       </div>
     </section>
 
@@ -115,7 +168,7 @@
     <button class="nav-btn" data-view="categories">Categories</button>
     <button class="nav-btn" data-view="trends">Trends</button>
     <button class="nav-btn" data-view="leaks">Leaks</button>
-    <button class="nav-btn" data-view="save">Save</button>
+    <button class="nav-btn" data-view="more">More</button>
   </nav>
 
   <!-- ADD ENTRY MODAL -->
@@ -128,7 +181,9 @@
 
       <div class="entry-type-toggle" id="entryTypeToggle">
         <button data-type="expense" class="active">Expense</button>
-        <button data-type="saving">Saving / Investment</button>
+        <button data-type="saving">Saving</button>
+        <button data-type="income">Income</button>
+        <button data-type="debt">Debt/Lending</button>
       </div>
 
       <form id="entryForm">
@@ -157,7 +212,28 @@
           <input type="text" id="f-note" placeholder="What was this for?">
         </label>
 
-        <label class="field">
+        <div class="field" id="debtDirectionWrap">
+          <span>Direction</span>
+          <div class="segment-toggle" id="debtDirectionToggle">
+            <button type="button" data-direction="borrowed" class="active">I borrowed</button>
+            <button type="button" data-direction="lent">I lent</button>
+          </div>
+        </div>
+
+        <label class="field" id="counterpartyFieldWrap">
+          <span>From / To (name)</span>
+          <input type="text" id="f-counterparty" placeholder="Who's this with?">
+        </label>
+
+        <div class="field" id="debtStatusWrap">
+          <span>Status</span>
+          <div class="segment-toggle" id="debtStatusToggle">
+            <button type="button" data-status="pending" class="active">Pending</button>
+            <button type="button" data-status="repaid">Repaid</button>
+          </div>
+        </div>
+
+        <label class="field" id="paymentFieldWrap">
           <span>Payment method</span>
           <select id="f-payment">
             <option>UPI</option>
