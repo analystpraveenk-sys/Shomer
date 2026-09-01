@@ -108,6 +108,7 @@ main{
 
 .leak-block{ cursor:pointer; }
 .leak-sub{ font-size: 12px; color: var(--parchment-dim); margin-top: 6px; }
+#ov-saved-block, #ov-debt-block{ cursor:pointer; }
 
 /* mini list (top categories, payment methods) */
 .mini-list{ display:flex; flex-direction:column; gap:12px; }
@@ -136,6 +137,25 @@ main{
   font-size:13px; color: var(--parchment-dim);
   padding: 3px 0 3px 12px;
 }
+
+/* segment toggle (reused for More view and debt direction/status) */
+.segment-toggle{ display:flex; gap:6px; margin-bottom: 14px; }
+.segment-toggle button{
+  flex:1; padding:8px 4px;
+  background: var(--ink-2); border:1px solid var(--line);
+  color: var(--parchment-dim); border-radius: 6px;
+  font-size:12px; cursor:pointer;
+}
+.segment-toggle button.active{ color: var(--ink); background: var(--brass); border-color: var(--brass); }
+.segment{ display:none; }
+.segment.active{ display:block; }
+
+.status-badge{
+  display:inline-block; font-size:10px; padding:2px 8px; border-radius:999px;
+  margin-left:6px; vertical-align:middle;
+}
+.status-badge.pending{ background: rgba(181,80,47,0.18); color: var(--rust); }
+.status-badge.repaid{ background: rgba(79,125,117,0.18); color: var(--sage); }
 
 /* range toggle */
 .range-toggle{ display:flex; gap:6px; margin-bottom: 14px; }
