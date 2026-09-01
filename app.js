@@ -11,6 +11,7 @@ const CATEGORIES = {
   Misc: ["Uncategorized", "One-off"]
 };
 const SAVING_CATEGORIES = { "Investments/Savings": ["SIP", "Deposit", "Stocks", "Emergency Fund"] };
+const INCOME_CATEGORIES = { Income: ["Salary", "Freelance/Side Income", "Gift Received", "Interest/Returns", "Other"] };
 
 const CAT_COLORS = ["#B8923F","#4F7D75","#B5502F","#7B8FA1","#9B7EBD","#C2A15C","#5E9E8F","#A65A5A","#7C7361"];
 
@@ -63,6 +64,8 @@ let allEntries = [];
 let currentType = "expense";
 let selectedTags = new Set();
 let trendRange = 6;
+let debtDirection = "borrowed";
+let debtStatus = "pending";
 
 /* ---------- Init ---------- */
 document.getElementById("f-date").value = todayISO();
@@ -75,6 +78,8 @@ async function refresh() {
   renderTrends();
   renderLeaks();
   renderSave();
+  renderIncome();
+  renderDebt();
 }
 refresh();
 
@@ -83,6 +88,22 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
 });
 document.getElementById("ov-leak-block").addEventListener("click", () => switchView("leaks"));
+document.getElementById("ov-saved-block").addEventListener("click", () => openMoreSegment("save"));
+document.getElementById("ov-debt-block").addEventListener("click", () => openMoreSegment("debt"));
+
+function openMoreSegment(seg) {
+  switchView("more");
+  document.querySelectorAll("#moreSegmentToggle button").forEach(b => b.classList.toggle("active", b.dataset.segment === seg));
+  document.querySelectorAll(".segment").forEach(s => s.classList.toggle("active", s.id === "segment-" + seg));
+}
+
+document.getElementById("moreSegmentToggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  const seg = btn.dataset.segment;
+  document.querySelectorAll("#moreSegmentToggle button").forEach(b => b.classList.toggle("active", b === btn));
+  document.querySelectorAll(".segment").forEach(s => s.classList.toggle("active", s.id === "segment-" + seg));
+});
 
 function switchView(name) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.dataset.view === name));
@@ -96,29 +117,64 @@ document.getElementById("addBtn").addEventListener("click", () => {
 });
 document.getElementById("closeModal").addEventListener("click", () => modal.classList.add("hidden"));
 
+function categorySourceFor(type) {
+  if (type === "expense") return CATEGORIES;
+  if (type === "saving") return SAVING_CATEGORIES;
+  if (type === "income") return INCOME_CATEGORIES;
+  return null; // debt has no category system
+}
+
 document.getElementById("entryTypeToggle").addEventListener("click", (e) => {
   const btn = e.target.closest("button");
   if (!btn) return;
   currentType = btn.dataset.type;
   document.querySelectorAll("#entryTypeToggle button").forEach(b => b.classList.toggle("active", b === btn));
-  document.getElementById("tagsFieldWrap").style.display = currentType === "expense" ? "block" : "none";
+  applyFieldVisibility();
   populateCategorySelect();
 });
 
+function applyFieldVisibility() {
+  const isDebt = currentType === "debt";
+  document.getElementById("categoryFieldWrap").style.display = isDebt ? "none" : "block";
+  document.getElementById("subcategoryFieldWrap").style.display = isDebt ? "none" : "block";
+  document.getElementById("tagsFieldWrap").style.display = currentType === "expense" ? "block" : "none";
+  document.getElementById("paymentFieldWrap").style.display = isDebt ? "none" : "block";
+  document.getElementById("debtDirectionWrap").style.display = isDebt ? "block" : "none";
+  document.getElementById("counterpartyFieldWrap").style.display = isDebt ? "block" : "none";
+  document.getElementById("debtStatusWrap").style.display = isDebt ? "block" : "none";
+}
+applyFieldVisibility();
+
 function populateCategorySelect() {
+  const source = categorySourceFor(currentType);
   const catSel = document.getElementById("f-category");
-  const source = currentType === "expense" ? CATEGORIES : SAVING_CATEGORIES;
+  if (!source) { catSel.innerHTML = ""; document.getElementById("f-subcategory").innerHTML = ""; return; }
   catSel.innerHTML = Object.keys(source).map(c => `<option value="${c}">${c}</option>`).join("");
   updateSubcategorySelect();
 }
 document.getElementById("f-category").addEventListener("change", updateSubcategorySelect);
 
 function updateSubcategorySelect() {
-  const source = currentType === "expense" ? CATEGORIES : SAVING_CATEGORIES;
+  const source = categorySourceFor(currentType);
+  if (!source) return;
   const cat = document.getElementById("f-category").value;
   const subSel = document.getElementById("f-subcategory");
   subSel.innerHTML = (source[cat] || []).map(s => `<option value="${s}">${s}</option>`).join("");
 }
+
+document.getElementById("debtDirectionToggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  debtDirection = btn.dataset.direction;
+  document.querySelectorAll("#debtDirectionToggle button").forEach(b => b.classList.toggle("active", b === btn));
+});
+
+document.getElementById("debtStatusToggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  debtStatus = btn.dataset.status;
+  document.querySelectorAll("#debtStatusToggle button").forEach(b => b.classList.toggle("active", b === btn));
+});
 
 document.getElementById("tagPicker").addEventListener("click", (e) => {
   const btn = e.target.closest("button");
@@ -130,16 +186,35 @@ document.getElementById("tagPicker").addEventListener("click", (e) => {
 
 document.getElementById("entryForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const entry = {
+  const base = {
     type: currentType,
     amount: parseFloat(document.getElementById("f-amount").value),
     date: document.getElementById("f-date").value,
-    category: document.getElementById("f-category").value,
-    subcategory: document.getElementById("f-subcategory").value,
-    note: document.getElementById("f-note").value.trim(),
-    paymentMethod: document.getElementById("f-payment").value,
-    tags: currentType === "expense" ? Array.from(selectedTags) : []
+    note: document.getElementById("f-note").value.trim()
   };
+
+  let entry;
+  if (currentType === "debt") {
+    entry = {
+      ...base,
+      direction: debtDirection,
+      counterparty: document.getElementById("f-counterparty").value.trim(),
+      status: debtStatus,
+      category: "Debt & Lending",
+      subcategory: debtDirection === "borrowed" ? "Borrowed" : "Lent",
+      paymentMethod: "",
+      tags: []
+    };
+  } else {
+    entry = {
+      ...base,
+      category: document.getElementById("f-category").value,
+      subcategory: document.getElementById("f-subcategory").value,
+      paymentMethod: document.getElementById("f-payment").value,
+      tags: currentType === "expense" ? Array.from(selectedTags) : []
+    };
+  }
+
   await addEntry(entry);
 
   // reset form
@@ -147,48 +222,71 @@ document.getElementById("entryForm").addEventListener("submit", async (e) => {
   document.getElementById("f-date").value = todayISO();
   selectedTags.clear();
   document.querySelectorAll("#tagPicker button").forEach(b => b.classList.remove("active"));
+  debtDirection = "borrowed"; debtStatus = "pending";
+  document.querySelectorAll("#debtDirectionToggle button").forEach((b,i) => b.classList.toggle("active", i === 0));
+  document.querySelectorAll("#debtStatusToggle button").forEach((b,i) => b.classList.toggle("active", i === 0));
   modal.classList.add("hidden");
 
   await refresh();
 });
 
+async function updateEntry(entry) {
+  const db = await dbPromise;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(entry);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 /* ---------- Derived data ---------- */
 function expenses() { return allEntries.filter(e => e.type === "expense"); }
 function savings() { return allEntries.filter(e => e.type === "saving"); }
+function incomes() { return allEntries.filter(e => e.type === "income"); }
+function debts() { return allEntries.filter(e => e.type === "debt"); }
 function thisMonthKey() { return monthKey(todayISO()); }
 function lastMonthKey() {
   const d = new Date(); d.setMonth(d.getMonth() - 1);
   return d.toISOString().slice(0, 7);
 }
 
-/* ---------- Overview ---------- */
+/* ---------- Overview / Dashboard ---------- */
 function renderOverview() {
   const ex = expenses();
-  const thisMonth = ex.filter(e => monthKey(e.date) === thisMonthKey());
-  const lastMonth = ex.filter(e => monthKey(e.date) === lastMonthKey());
-  const totalThis = thisMonth.reduce((s, e) => s + e.amount, 0);
-  const totalLast = lastMonth.reduce((s, e) => s + e.amount, 0);
+  const inc = incomes();
+  const thisMonthEx = ex.filter(e => monthKey(e.date) === thisMonthKey());
+  const thisMonthInc = inc.filter(e => monthKey(e.date) === thisMonthKey());
+  const totalExThis = thisMonthEx.reduce((s, e) => s + e.amount, 0);
+  const totalIncThis = thisMonthInc.reduce((s, e) => s + e.amount, 0);
+  const net = totalIncThis - totalExThis;
 
-  document.getElementById("ov-total").textContent = fmt(totalThis);
+  document.getElementById("ov-net").textContent = (net < 0 ? "-" : "") + fmt(Math.abs(net));
+  document.getElementById("ov-net-breakdown").textContent =
+    `Income ${fmt(totalIncThis)} · Expenses ${fmt(totalExThis)}`;
 
-  const compareEl = document.getElementById("ov-compare");
-  if (totalLast > 0) {
-    const diff = ((totalThis - totalLast) / totalLast) * 100;
-    const arrow = diff >= 0 ? "↑" : "↓";
-    compareEl.textContent = `${arrow} ${Math.abs(diff).toFixed(0)}% vs last month`;
-  } else {
-    compareEl.textContent = "No data from last month yet";
-  }
-
-  // pace
+  // pace (spend only)
   const now = new Date();
   const dayOfMonth = now.getDate();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysLeft = daysInMonth - dayOfMonth;
-  const dailyAvg = dayOfMonth > 0 ? totalThis / dayOfMonth : 0;
+  const dailyAvg = dayOfMonth > 0 ? totalExThis / dayOfMonth : 0;
   const projected = dailyAvg * daysInMonth;
   document.getElementById("ov-pace").textContent =
-    totalThis > 0 ? `${fmt(projected)} by month end (${daysLeft}d left)` : "—";
+    totalExThis > 0 ? `${fmt(projected)} by month end (${daysLeft}d left)` : "—";
+
+  // saved all time
+  const savedTotal = savings().reduce((s, e) => s + e.amount, 0);
+  document.getElementById("ov-saved").textContent = fmt(savedTotal);
+
+  // debt snapshot
+  const dbtList = debts();
+  const oweTotal = dbtList.filter(e => e.direction === "borrowed" && e.status === "pending")
+    .reduce((s, e) => s + e.amount, 0);
+  const owedTotal = dbtList.filter(e => e.direction === "lent" && e.status === "pending")
+    .reduce((s, e) => s + e.amount, 0);
+  document.getElementById("ov-owe").textContent = fmt(oweTotal);
+  document.getElementById("ov-owed").textContent = fmt(owedTotal);
 
   // leak
   const leakThisYear = ex.filter(e => e.date.slice(0,4) === todayISO().slice(0,4) && e.tags.includes("avoidable"));
@@ -197,7 +295,7 @@ function renderOverview() {
 
   // top categories this month
   const byCategory = {};
-  thisMonth.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + e.amount; });
+  thisMonthEx.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + e.amount; });
   const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 3);
   const maxVal = sorted.length ? sorted[0][1] : 1;
   const container = document.getElementById("ov-top-categories");
@@ -384,6 +482,59 @@ function renderSave() {
       <div class="entry-amt sage">${fmt(e.amount)}</div>
     </div>
   `).join("") : `<div class="empty-note">No savings or investments logged yet.</div>`;
+}
+
+/* ---------- Income view ---------- */
+function renderIncome() {
+  const inc = incomes().sort((a, b) => new Date(b.date) - new Date(a.date));
+  const total = inc.reduce((s, e) => s + e.amount, 0);
+  document.getElementById("income-total").textContent = fmt(total);
+
+  document.getElementById("income-list").innerHTML = inc.length ? inc.map(e => `
+    <div class="entry-row">
+      <div>
+        <div>${e.note || e.subcategory || e.category}</div>
+        <div class="entry-meta">${e.subcategory} · ${e.date}</div>
+      </div>
+      <div class="entry-amt sage">${fmt(e.amount)}</div>
+    </div>
+  `).join("") : `<div class="empty-note">No income logged yet.</div>`;
+}
+
+/* ---------- Debt & Lending view ---------- */
+function renderDebt() {
+  const list = debts().sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const oweTotal = list.filter(e => e.direction === "borrowed" && e.status === "pending")
+    .reduce((s, e) => s + e.amount, 0);
+  const owedTotal = list.filter(e => e.direction === "lent" && e.status === "pending")
+    .reduce((s, e) => s + e.amount, 0);
+  document.getElementById("debt-owe-total").textContent = fmt(oweTotal);
+  document.getElementById("debt-owed-total").textContent = fmt(owedTotal);
+
+  document.getElementById("debt-list").innerHTML = list.length ? list.map(e => `
+    <div class="entry-row debt-row" data-id="${e.id}">
+      <div>
+        <div>${e.direction === "borrowed" ? "Borrowed from" : "Lent to"} ${e.counterparty || "someone"}
+          <span class="status-badge ${e.status}">${e.status}</span>
+        </div>
+        <div class="entry-meta">${e.note ? e.note + " · " : ""}${e.date}</div>
+      </div>
+      <div class="entry-amt ${e.direction === "borrowed" ? "rust" : "sage"}">${fmt(e.amount)}</div>
+    </div>
+  `).join("") : `<div class="empty-note">No debt or lending logged yet.</div>`;
+
+  document.querySelectorAll(".debt-row").forEach(row => {
+    row.style.cursor = "pointer";
+    row.addEventListener("click", async () => {
+      const id = parseInt(row.dataset.id);
+      const entry = allEntries.find(e => e.id === id);
+      if (!entry) return;
+      entry.status = entry.status === "pending" ? "repaid" : "pending";
+      await updateEntry(entry);
+      await refresh();
+    });
+  });
 }
 
 /* ---------- Service worker ---------- */
