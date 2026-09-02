@@ -963,50 +963,8 @@ document.getElementById("restore-input").addEventListener("change", async (e) =>
   e.target.value = "";
 });
 
-/* ---------- PIN Lock ---------- */
-const PIN_KEY = "shomer-pin-hash";
-async function hashPin(pin) {
-  const enc = new TextEncoder().encode(pin);
-  const digest = await crypto.subtle.digest("SHA-256", enc);
-  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
-function hasPin() { return !!localStorage.getItem(PIN_KEY); }
-function updatePinSettingsUI() {
-  document.getElementById("pin-status").textContent = hasPin() ? "PIN lock is on." : "No PIN set — app opens directly.";
-  document.getElementById("pin-setup-btn").textContent = hasPin() ? "Change PIN" : "Set up PIN";
-  document.getElementById("pin-remove-btn").style.display = hasPin() ? "block" : "none";
-}
-document.getElementById("pin-setup-btn").addEventListener("click", async () => {
-  const pin = prompt("Enter a 4-6 digit PIN:");
-  if (!pin || pin.length < 4) { if (pin !== null) alert("PIN must be at least 4 digits."); return; }
-  const confirmPin = prompt("Confirm your PIN:");
-  if (pin !== confirmPin) { alert("PINs didn't match."); return; }
-  localStorage.setItem(PIN_KEY, await hashPin(pin));
-  updatePinSettingsUI();
-  alert("PIN set. It'll be asked for next time you open the app.");
-});
-document.getElementById("pin-remove-btn").addEventListener("click", () => {
-  if (!confirm("Remove the PIN lock?")) return;
-  localStorage.removeItem(PIN_KEY);
-  updatePinSettingsUI();
-});
-updatePinSettingsUI();
-
-const lockScreen = document.getElementById("lockScreen");
-if (hasPin()) lockScreen.classList.remove("hidden");
-document.getElementById("lock-submit").addEventListener("click", tryUnlock);
-document.getElementById("lock-input").addEventListener("keydown", (e) => { if (e.key === "Enter") tryUnlock(); });
-async function tryUnlock() {
-  const entered = document.getElementById("lock-input").value;
-  const hash = await hashPin(entered);
-  if (hash === localStorage.getItem(PIN_KEY)) {
-    lockScreen.classList.add("hidden");
-    document.getElementById("lock-input").value = "";
-    document.getElementById("lock-error").textContent = "";
-  } else {
-    document.getElementById("lock-error").textContent = "Incorrect PIN.";
-  }
-}
+/* PIN lock removed by request — clear any previously stored PIN so no one gets locked out */
+localStorage.removeItem("shomer-pin-hash");
 
 /* ---------- Service worker ---------- */
 if ("serviceWorker" in navigator) {
