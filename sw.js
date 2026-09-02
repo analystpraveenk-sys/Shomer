@@ -1,4 +1,4 @@
-const CACHE = 'shomer-v2';
+const CACHE = 'shomer-v3';
 const ASSETS = [
   './',
   './index.html',
