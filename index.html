@@ -261,12 +261,6 @@
 
       <div id="segment-settings" class="segment">
         <div class="ledger-block">
-          <div class="block-title">App lock</div>
-          <div id="pin-status" class="leak-sub" style="margin-bottom:10px;"></div>
-          <button id="pin-setup-btn" type="button" class="submit-btn">Set up PIN</button>
-          <button id="pin-remove-btn" type="button" class="submit-btn" style="background:var(--ink-3); color:var(--parchment); margin-top:8px; display:none;">Remove PIN</button>
-        </div>
-        <div class="ledger-block">
           <div class="block-title">Backup &amp; restore</div>
           <button id="backup-btn" type="button" class="submit-btn">Download full backup (JSON)</button>
           <label class="submit-btn" style="display:block; text-align:center; margin-top:8px; background:var(--ink-3); color:var(--parchment); cursor:pointer;">
@@ -298,17 +292,6 @@
         <input type="text" id="search-input" placeholder="Search by note, category, or person...">
       </div>
       <div id="search-results" class="entry-list"></div>
-    </div>
-  </div>
-
-  <!-- PIN LOCK OVERLAY -->
-  <div id="lockScreen" class="lock-screen hidden">
-    <div class="lock-content">
-      <img src="icon-192.png" alt="" class="brand-mark" style="width:56px;height:56px;margin-bottom:14px;">
-      <div class="brand-name" style="font-size:22px;margin-bottom:18px;">Enter PIN</div>
-      <input type="password" id="lock-input" inputmode="numeric" maxlength="6" class="lock-input" autocomplete="off">
-      <div id="lock-error" class="leak-sub" style="color:var(--rust); min-height:18px;"></div>
-      <button id="lock-submit" class="submit-btn" style="max-width:220px;">Unlock</button>
     </div>
   </div>
 
