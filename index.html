@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -21,7 +22,11 @@
       <img src="icon-192.png" alt="" class="brand-mark">
       <span class="brand-name">Shomer</span>
     </div>
-    <button id="addBtn" class="add-btn" aria-label="Add entry">+</button>
+    <div class="header-actions">
+      <button id="searchBtn" class="theme-toggle-btn" aria-label="Search">⌕</button>
+      <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">☀</button>
+      <button id="addBtn" class="add-btn" aria-label="Add entry">+</button>
+    </div>
   </header>
 
   <main id="views">
@@ -72,6 +77,14 @@
         <div class="block-title">Top categories this month</div>
         <div id="ov-top-categories" class="mini-list"></div>
       </div>
+
+      <div class="ledger-block">
+        <div class="block-title">Monthly report</div>
+        <div class="row-line" style="gap:10px; align-items:center;">
+          <input type="month" id="report-month" style="background:var(--ink-3);border:1px solid var(--line);color:var(--parchment);border-radius:8px;padding:8px;font-size:13px;">
+          <button id="downloadReportBtn" class="submit-btn" style="width:auto;padding:9px 16px;margin-top:0;">Download CSV</button>
+        </div>
+      </div>
     </section>
 
     <!-- CATEGORIES -->
@@ -115,12 +128,15 @@
       </div>
     </section>
 
-    <!-- MORE: Save / Income / Debt & Lending -->
+    <!-- MORE: Save / Income / Debt & Lending / Budgets / Recurring -->
     <section id="view-more" class="view" data-view="more">
-      <div class="segment-toggle" id="moreSegmentToggle">
+      <div class="segment-toggle scrollable" id="moreSegmentToggle">
         <button data-segment="save" class="active">Save</button>
         <button data-segment="income">Income</button>
         <button data-segment="debt">Debt &amp; Lending</button>
+        <button data-segment="budgets">Budgets</button>
+        <button data-segment="recurring">Recurring</button>
+        <button data-segment="settings">Settings</button>
       </div>
 
       <div id="segment-save" class="segment active">
@@ -128,6 +144,42 @@
           <div class="hero-label">Saved &amp; invested, all time</div>
           <div class="hero-amount sage" id="save-total">₹0</div>
         </div>
+
+        <div class="ledger-block">
+          <div class="block-title">Emergency fund calculator</div>
+          <div id="ef-summary" class="row-line" style="align-items:flex-start;"></div>
+          <div class="field" style="margin-top:10px;">
+            <span>Months of cover</span>
+            <select id="ef-months">
+              <option value="3">3 months</option>
+              <option value="6" selected>6 months</option>
+              <option value="9">9 months</option>
+              <option value="12">12 months</option>
+            </select>
+          </div>
+          <div class="field">
+            <span>Reach it within</span>
+            <select id="ef-timeline">
+              <option value="6">6 months</option>
+              <option value="12" selected>12 months</option>
+              <option value="24">24 months</option>
+              <option value="36">36 months</option>
+            </select>
+          </div>
+          <div id="ef-result" class="leak-sub" style="margin-bottom:10px;"></div>
+          <button id="ef-set-goal" class="submit-btn" style="margin-top:0;">Set as goal</button>
+        </div>
+
+        <div class="ledger-block">
+          <div class="block-title">Goals</div>
+          <div id="goal-list" class="mini-list"></div>
+          <div class="goal-add-row">
+            <input type="text" id="goal-name" placeholder="Goal name">
+            <input type="number" id="goal-amount" placeholder="Target ₹">
+            <button id="goal-add-btn" type="button">Add</button>
+          </div>
+        </div>
+
         <div class="ledger-block">
           <div class="block-title">Entries</div>
           <div id="save-list" class="entry-list"></div>
@@ -159,6 +211,70 @@
           <div id="debt-list" class="entry-list"></div>
         </div>
       </div>
+
+      <div id="segment-budgets" class="segment">
+        <div class="ledger-block">
+          <div class="block-title">Monthly budgets by category</div>
+          <div id="budget-list" class="budget-list"></div>
+        </div>
+      </div>
+
+      <div id="segment-recurring" class="segment">
+        <div class="ledger-block">
+          <div class="block-title">Recurring entries</div>
+          <div class="leak-sub" style="margin-bottom:12px;">Auto-added once per month when you open the app, on the day you set.</div>
+          <div id="recurring-list" class="entry-list"></div>
+        </div>
+        <div class="ledger-block">
+          <div class="block-title">Add a recurring entry</div>
+          <div class="field">
+            <span>Type</span>
+            <select id="rec-type">
+              <option value="expense">Expense</option>
+              <option value="saving">Saving</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+          <div class="field">
+            <span>Category</span>
+            <select id="rec-category"></select>
+          </div>
+          <div class="field">
+            <span>Subcategory</span>
+            <select id="rec-subcategory"></select>
+          </div>
+          <div class="field">
+            <span>Amount</span>
+            <input type="number" id="rec-amount" min="0" step="0.01">
+          </div>
+          <div class="field">
+            <span>Day of month</span>
+            <input type="number" id="rec-day" min="1" max="28" value="1">
+          </div>
+          <div class="field">
+            <span>Note</span>
+            <input type="text" id="rec-note" placeholder="e.g. Rent">
+          </div>
+          <button id="rec-add-btn" type="button" class="submit-btn">Add recurring entry</button>
+        </div>
+      </div>
+
+      <div id="segment-settings" class="segment">
+        <div class="ledger-block">
+          <div class="block-title">App lock</div>
+          <div id="pin-status" class="leak-sub" style="margin-bottom:10px;"></div>
+          <button id="pin-setup-btn" type="button" class="submit-btn">Set up PIN</button>
+          <button id="pin-remove-btn" type="button" class="submit-btn" style="background:var(--ink-3); color:var(--parchment); margin-top:8px; display:none;">Remove PIN</button>
+        </div>
+        <div class="ledger-block">
+          <div class="block-title">Backup &amp; restore</div>
+          <button id="backup-btn" type="button" class="submit-btn">Download full backup (JSON)</button>
+          <label class="submit-btn" style="display:block; text-align:center; margin-top:8px; background:var(--ink-3); color:var(--parchment); cursor:pointer;">
+            Restore from backup
+            <input type="file" id="restore-input" accept="application/json" style="display:none;">
+          </label>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -170,6 +286,31 @@
     <button class="nav-btn" data-view="leaks">Leaks</button>
     <button class="nav-btn" data-view="more">More</button>
   </nav>
+
+  <!-- SEARCH MODAL -->
+  <div id="searchModal" class="modal hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <span>Search entries</span>
+        <button id="closeSearch" class="close-btn" aria-label="Close">×</button>
+      </div>
+      <div class="field">
+        <input type="text" id="search-input" placeholder="Search by note, category, or person...">
+      </div>
+      <div id="search-results" class="entry-list"></div>
+    </div>
+  </div>
+
+  <!-- PIN LOCK OVERLAY -->
+  <div id="lockScreen" class="lock-screen hidden">
+    <div class="lock-content">
+      <img src="icon-192.png" alt="" class="brand-mark" style="width:56px;height:56px;margin-bottom:14px;">
+      <div class="brand-name" style="font-size:22px;margin-bottom:18px;">Enter PIN</div>
+      <input type="password" id="lock-input" inputmode="numeric" maxlength="6" class="lock-input" autocomplete="off">
+      <div id="lock-error" class="leak-sub" style="color:var(--rust); min-height:18px;"></div>
+      <button id="lock-submit" class="submit-btn" style="max-width:220px;">Unlock</button>
+    </div>
+  </div>
 
   <!-- ADD ENTRY MODAL -->
   <div id="addModal" class="modal hidden">
